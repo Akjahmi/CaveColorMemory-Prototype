@@ -1,5 +1,6 @@
 
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GridGenerator : MonoBehaviour
@@ -7,11 +8,21 @@ public class GridGenerator : MonoBehaviour
     public int gridSize = 4;
     public float tileSize = 1f;
     public float gap = 0.08f;
-
     public float previewDuration = 6f;
 
     private Renderer[,] tileRenderers;
     private Color[,] originalColors;
+
+    private Vector2Int[] playerCells = new Vector2Int[2];
+    private GameObject[] playerMarkers = new GameObject[2];
+
+    private HashSet<int>[] selections =
+    {
+        new HashSet<int>(),
+        new HashSet<int>()
+    };
+
+    private bool canSelect = false;
 
     private Color[] colors =
     {
@@ -26,6 +37,23 @@ public class GridGenerator : MonoBehaviour
         tileRenderers = new Renderer[gridSize, gridSize];
         originalColors = new Color[gridSize, gridSize];
 
+        // Create a balanced, shuffled list of colors.
+        List<int> colorIndices = new List<int>();
+
+        for (int i = 0; i < gridSize * gridSize; i++)
+        {
+            colorIndices.Add(i % colors.Length);
+        }
+
+        for (int i = colorIndices.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            int temp = colorIndices[i];
+            colorIndices[i] = colorIndices[j];
+            colorIndices[j] = temp;
+        }
+
+        // Generate the 4x4 grid.
         for (int row = 0; row < gridSize; row++)
         {
             for (int col = 0; col < gridSize; col++)
@@ -50,26 +78,69 @@ public class GridGenerator : MonoBehaviour
                         tileSize - gap
                     );
 
-                int randomIndex = Random.Range(0, colors.Length);
-                Color selectedColor = colors[randomIndex];
+                int colorIndex =
+                    colorIndices[row * gridSize + col];
+
+                Color chosenColor = colors[colorIndex];
 
                 Material material = new Material(
                     Shader.Find("Standard")
                 );
 
-                material.color = selectedColor;
+                material.color = chosenColor;
 
-                Renderer tileRenderer =
+                Renderer renderer =
                     tile.GetComponent<Renderer>();
 
-                tileRenderer.material = material;
+                renderer.material = material;
 
-                tileRenderers[row, col] = tileRenderer;
-                originalColors[row, col] = selectedColor;
+                tileRenderers[row, col] = renderer;
+                originalColors[row, col] = chosenColor;
             }
         }
 
+        // Set initial player positions.
+        playerCells[0] = new Vector2Int(0, 0);
+        playerCells[1] = new Vector2Int(
+            gridSize - 1,
+            gridSize - 1
+        );
+
+        CreatePlayer(0, Color.red);
+        CreatePlayer(1, Color.blue);
+
         StartCoroutine(HideColorsAfterDelay());
+    }
+
+    void CreatePlayer(int player, Color color)
+    {
+        GameObject marker = GameObject.CreatePrimitive(
+            PrimitiveType.Sphere
+        );
+
+        marker.name = "Player_" + (player + 1);
+        marker.transform.SetParent(transform, false);
+        marker.transform.localScale = Vector3.one * 0.3f;
+
+        marker.GetComponent<Renderer>().material.color =
+            color;
+
+        marker.GetComponent<Collider>().enabled = false;
+
+        playerMarkers[player] = marker;
+        UpdateMarkerPosition(player);
+    }
+
+    void UpdateMarkerPosition(int player)
+    {
+        int row = playerCells[player].x;
+        int col = playerCells[player].y;
+
+        float x = (col - (gridSize - 1) / 2f) * tileSize;
+        float z = (row - (gridSize - 1) / 2f) * tileSize;
+
+        playerMarkers[player].transform.localPosition =
+            new Vector3(x, 0.23f, z);
     }
 
     IEnumerator HideColorsAfterDelay()
@@ -85,6 +156,116 @@ public class GridGenerator : MonoBehaviour
             }
         }
 
-        Debug.Log("Memory phase finished. Colors hidden.");
+        canSelect = true;
+
+        Debug.Log("Memory phase started!");
+    }
+
+    void Update()
+    {
+        if (!canSelect)
+            return;
+
+        // Player 1: WASD + Space
+        if (Input.GetKeyDown(KeyCode.W))
+            MovePlayer(0, 1, 0);
+
+        if (Input.GetKeyDown(KeyCode.S))
+            MovePlayer(0, -1, 0);
+
+        if (Input.GetKeyDown(KeyCode.A))
+            MovePlayer(0, 0, -1);
+
+        if (Input.GetKeyDown(KeyCode.D))
+            MovePlayer(0, 0, 1);
+
+        if (Input.GetKeyDown(KeyCode.Space))
+            SelectTile(0);
+
+        // Player 2: Arrow keys + Enter
+        if (Input.GetKeyDown(KeyCode.UpArrow))
+            MovePlayer(1, 1, 0);
+
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+            MovePlayer(1, -1, 0);
+
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
+            MovePlayer(1, 0, -1);
+
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+            MovePlayer(1, 0, 1);
+
+        if (Input.GetKeyDown(KeyCode.Return) ||
+            Input.GetKeyDown(KeyCode.KeypadEnter))
+        {
+            SelectTile(1);
+        }
+    }
+
+    void MovePlayer(int player, int rowChange, int colChange)
+    {
+        int newRow = Mathf.Clamp(
+            playerCells[player].x + rowChange,
+            0,
+            gridSize - 1
+        );
+
+        int newCol = Mathf.Clamp(
+            playerCells[player].y + colChange,
+            0,
+            gridSize - 1
+        );
+
+        playerCells[player] = new Vector2Int(
+            newRow,
+            newCol
+        );
+
+        UpdateMarkerPosition(player);
+    }
+
+    void SelectTile(int player)
+    {
+        int row = playerCells[player].x;
+        int col = playerCells[player].y;
+
+        int tileId = row * gridSize + col;
+
+        if (selections[player].Add(tileId))
+        {
+            Debug.Log(
+                "Player " + (player + 1) +
+                " selected Row " + (row + 1) +
+                ", Column " + (col + 1)
+            );
+        }
+        else
+        {
+            Debug.Log("This player already selected this tile.");
+        }
+    }
+
+    void OnGUI()
+    {
+        if (tileRenderers == null)
+            return;
+
+        string phase = canSelect
+            ? "PLAY: Select remembered tiles"
+            : "MEMORIZE: Wait for colors to disappear";
+
+        GUI.Box(new Rect(10, 10, 440, 100), phase);
+
+        GUI.Label(
+            new Rect(25, 40, 400, 25),
+            "P1 RED: WASD + Space | Choices: " +
+            selections[0].Count
+        );
+
+        GUI.Label(
+            new Rect(25, 68, 400, 25),
+            "P2 BLUE: Arrows + Enter | Choices: " +
+            selections[1].Count
+        );
     }
 }

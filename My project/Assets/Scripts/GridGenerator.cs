@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.IO;
 
 public class GridGenerator : MonoBehaviour
 {
@@ -291,6 +292,7 @@ public class GridGenerator : MonoBehaviour
         {
             roundFinished = true;
             canSelect = false;
+            SaveRoundResult();
 
             Debug.Log(
                 "GAME OVER! Player 1: " + scores[0] +
@@ -360,6 +362,87 @@ public class GridGenerator : MonoBehaviour
 
         Debug.Log("New round started!");
     }
+
+    void SaveRoundResult()
+    {
+        try
+        {
+            RoundResultData data = new RoundResultData();
+
+            data.completedAtUtc =
+                System.DateTime.UtcNow.ToString("o");
+
+            data.gridSize = gridSize;
+            data.previewDuration = previewDuration;
+
+            // Save the original board colors.
+            data.boardColors = new string[gridSize * gridSize];
+
+            for (int row = 0; row < gridSize; row++)
+            {
+                for (int col = 0; col < gridSize; col++)
+                {
+                    int id = row * gridSize + col;
+
+                    data.boardColors[id] = "#" +
+                        ColorUtility.ToHtmlStringRGB(
+                            originalColors[row, col]
+                        );
+                }
+            }
+
+            // Save both players' results.
+            data.players = new PlayerRoundData[2];
+
+            for (int player = 0; player < 2; player++)
+            {
+                PlayerRoundData result = new PlayerRoundData();
+
+                result.playerNumber = player + 1;
+                result.targetColor =
+                    player == 0 ? "Red" : "Blue";
+
+                result.score = scores[player];
+
+                result.selectedTileIds =
+                    new List<int>(selections[player]).ToArray();
+
+                data.players[player] = result;
+            }
+
+            // Create a folder for saved rounds.
+            string folder = Path.Combine(
+                Application.persistentDataPath,
+                "RoundResults"
+            );
+
+            Directory.CreateDirectory(folder);
+
+            string fileName = "round_" +
+                System.DateTime.UtcNow.ToString(
+                    "yyyyMMdd_HHmmss_fff"
+                ) +
+                "_" +
+                System.Guid.NewGuid().ToString("N").Substring(0, 8) +
+                ".json";
+
+            string filePath = Path.Combine(folder, fileName);
+
+            // Convert the data to JSON and save it.
+            string json = JsonUtility.ToJson(data, true);
+
+            File.WriteAllText(filePath, json);
+
+            Debug.Log("Round saved successfully: " + filePath);
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError(
+                "Failed to save round: " + ex.Message
+            );
+        }
+    }
+
 
 
 

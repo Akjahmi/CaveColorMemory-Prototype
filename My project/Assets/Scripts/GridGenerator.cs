@@ -24,6 +24,13 @@ public class GridGenerator : MonoBehaviour
 
     private bool canSelect = false;
 
+    private int[] scores = new int[2];
+
+    private bool roundFinished = false;
+
+    private const int AttemptsPerPlayer = 4;
+
+
     private Color[] colors =
     {
         Color.red,
@@ -224,48 +231,104 @@ public class GridGenerator : MonoBehaviour
         UpdateMarkerPosition(player);
     }
 
+
     void SelectTile(int player)
     {
+        if (!canSelect || roundFinished)
+            return;
+
+        if (selections[player].Count >= AttemptsPerPlayer)
+            return;
+
         int row = playerCells[player].x;
         int col = playerCells[player].y;
 
         int tileId = row * gridSize + col;
 
-        if (selections[player].Add(tileId))
+        // Prevent selecting the same tile twice.
+        if (!selections[player].Add(tileId))
         {
+            Debug.Log("Tile already selected.");
+            return;
+        }
+
+        // Player 1 = red, Player 2 = blue.
+        Color targetColor = player == 0
+            ? Color.red
+            : Color.blue;
+
+        bool correct = originalColors[row, col] == targetColor;
+
+        if (correct)
+        {
+            scores[player]++;
+
             Debug.Log(
                 "Player " + (player + 1) +
-                " selected Row " + (row + 1) +
-                ", Column " + (col + 1)
+                ": CORRECT! Score = " + scores[player]
             );
         }
         else
         {
-            Debug.Log("This player already selected this tile.");
+            Debug.Log(
+                "Player " + (player + 1) +
+                ": WRONG! Row " + (row + 1) +
+                ", Column " + (col + 1)
+            );
+        }
+
+        // End the round when both players finish.
+        if (selections[0].Count == AttemptsPerPlayer &&
+            selections[1].Count == AttemptsPerPlayer)
+        {
+            roundFinished = true;
+            canSelect = false;
+
+            Debug.Log(
+                "GAME OVER! Player 1: " + scores[0] +
+                "/4 | Player 2: " + scores[1] + "/4"
+            );
         }
     }
+
+
 
     void OnGUI()
     {
         if (tileRenderers == null)
             return;
 
-        string phase = canSelect
-            ? "PLAY: Select remembered tiles"
-            : "MEMORIZE: Wait for colors to disappear";
+        string phase;
 
-        GUI.Box(new Rect(10, 10, 440, 100), phase);
+        if (roundFinished)
+            phase = "GAME OVER";
+        else if (canSelect)
+            phase = "PLAY - SELECT YOUR TILES";
+        else
+            phase = "MEMORIZE THE COLORS";
+
+        GUI.Box(new Rect(10, 10, 480, 145), phase);
 
         GUI.Label(
-            new Rect(25, 40, 400, 25),
-            "P1 RED: WASD + Space | Choices: " +
-            selections[0].Count
+            new Rect(25, 40, 450, 25),
+            "Player 1 - RED | Attempts: " +
+            selections[0].Count + "/4"
         );
 
         GUI.Label(
-            new Rect(25, 68, 400, 25),
-            "P2 BLUE: Arrows + Enter | Choices: " +
-            selections[1].Count
+            new Rect(25, 68, 450, 25),
+            "Player 2 - BLUE | Attempts: " +
+            selections[1].Count + "/4"
         );
+
+        if (roundFinished)
+        {
+            GUI.Label(
+                new Rect(25, 104, 450, 30),
+                "FINAL SCORE: RED " + scores[0] +
+                "/4 | BLUE " + scores[1] + "/4"
+            );
+        }
     }
+
 }

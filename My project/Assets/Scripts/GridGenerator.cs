@@ -170,6 +170,14 @@ public class GridGenerator : MonoBehaviour
 
     void Update()
     {
+
+        if (roundFinished && Input.GetKeyDown(KeyCode.R))
+        {
+            RestartRound();
+            return;
+        }
+
+
         if (!canSelect)
             return;
 
@@ -292,6 +300,68 @@ public class GridGenerator : MonoBehaviour
     }
 
 
+    void RestartRound()
+    {
+        StopAllCoroutines();
+
+        canSelect = false;
+        roundFinished = false;
+
+        // Reset both players.
+        for (int player = 0; player < 2; player++)
+        {
+            scores[player] = 0;
+            selections[player].Clear();
+        }
+
+        playerCells[0] = new Vector2Int(0, 0);
+        playerCells[1] = new Vector2Int(
+            gridSize - 1,
+            gridSize - 1
+        );
+
+        UpdateMarkerPosition(0);
+        UpdateMarkerPosition(1);
+
+        // Generate balanced random colors.
+        List<int> colorIndices = new List<int>();
+
+        for (int i = 0; i < gridSize * gridSize; i++)
+        {
+            colorIndices.Add(i % colors.Length);
+        }
+
+        // Shuffle the colors.
+        for (int i = colorIndices.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+
+            int temp = colorIndices[i];
+            colorIndices[i] = colorIndices[j];
+            colorIndices[j] = temp;
+        }
+
+        // Assign new colors to the existing tiles.
+        for (int row = 0; row < gridSize; row++)
+        {
+            for (int col = 0; col < gridSize; col++)
+            {
+                int index = row * gridSize + col;
+                Color newColor = colors[colorIndices[index]];
+
+                originalColors[row, col] = newColor;
+
+                tileRenderers[row, col].material.color =
+                    newColor;
+            }
+        }
+
+        StartCoroutine(HideColorsAfterDelay());
+
+        Debug.Log("New round started!");
+    }
+
+
 
     void OnGUI()
     {
@@ -307,16 +377,18 @@ public class GridGenerator : MonoBehaviour
         else
             phase = "MEMORIZE THE COLORS";
 
-        GUI.Box(new Rect(10, 10, 480, 145), phase);
+        float panelY = Mathf.Max(10, Screen.height - 150);
+
+        GUI.Box(new Rect(10, panelY, 300, 140), phase);
 
         GUI.Label(
-            new Rect(25, 40, 450, 25),
+            new Rect(25, panelY + 35, 275, 25),
             "Player 1 - RED | Attempts: " +
             selections[0].Count + "/4"
         );
 
         GUI.Label(
-            new Rect(25, 68, 450, 25),
+            new Rect(25, panelY + 65, 275, 25),
             "Player 2 - BLUE | Attempts: " +
             selections[1].Count + "/4"
         );
@@ -324,7 +396,7 @@ public class GridGenerator : MonoBehaviour
         if (roundFinished)
         {
             GUI.Label(
-                new Rect(25, 104, 450, 30),
+                new Rect(25, panelY + 105, 275, 30),
                 "FINAL SCORE: RED " + scores[0] +
                 "/4 | BLUE " + scores[1] + "/4"
             );

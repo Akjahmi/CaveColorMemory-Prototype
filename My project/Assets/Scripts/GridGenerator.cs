@@ -307,7 +307,7 @@ public class GridGenerator : MonoBehaviour
         StopAllCoroutines();
 
         canSelect = false;
-        roundFinished = false;
+        roundFinished = false; 
 
         // Reset both players.
         for (int player = 0; player < 2; player++)
@@ -442,6 +442,56 @@ public class GridGenerator : MonoBehaviour
             );
         }
     }
+
+    public bool TrySelectAtWorldPosition(
+        int player,
+        Vector3 worldPosition)
+    {
+        if (!canSelect || roundFinished)
+            return false;
+
+        if (player < 0 || player >= 2 || tileSize <= 0f)
+            return false;
+
+        // Convert world position to grid-local position.
+        Vector3 localPosition =
+            transform.InverseTransformPoint(worldPosition);
+
+        float centerOffset = (gridSize - 1) / 2f;
+
+        int col = Mathf.RoundToInt(
+            localPosition.x / tileSize + centerOffset
+        );
+
+        int row = Mathf.RoundToInt(
+            localPosition.z / tileSize + centerOffset
+        );
+
+        // Reject positions outside the grid.
+        if (row < 0 || row >= gridSize ||
+            col < 0 || col >= gridSize)
+            return false;
+
+        // Reject positions inside gaps between tiles.
+        float centerX = (col - centerOffset) * tileSize;
+        float centerZ = (row - centerOffset) * tileSize;
+        float halfTile = (tileSize - gap) / 2f;
+
+        if (halfTile <= 0f ||
+            Mathf.Abs(localPosition.x - centerX) > halfTile ||
+            Mathf.Abs(localPosition.z - centerZ) > halfTile)
+            return false;
+
+        // Update the player's virtual position.
+        playerCells[player] = new Vector2Int(row, col);
+        UpdateMarkerPosition(player);
+
+        // Use the existing scoring system.
+        SelectTile(player);
+
+        return true;
+    }
+
 
 
 

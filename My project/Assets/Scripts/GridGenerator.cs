@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
+using HTW.CAVE;
 
 public class GridGenerator : MonoBehaviour
 {
@@ -10,7 +11,7 @@ public class GridGenerator : MonoBehaviour
     public float tileSize = 1f;
     public float gap = 0.08f;
     public float previewDuration = 6f;
-
+    public VirtualEnvironment environment;
     private Renderer[,] tileRenderers;
     private Color[,] originalColors;
 
@@ -39,9 +40,28 @@ public class GridGenerator : MonoBehaviour
         Color.green,
         Color.yellow
     };
+    private readonly string[] colorNames = { "Red", "Blue", "Green", "Yellow" };
+
+    // Which colour each player must find (0 = Red, 1 = Blue, 2 = Green, 3 = Yellow).
+    private int[] targetColorIndex = { 0, 1 };
+    private bool choosingColors = true;
+    private int choosingPlayer = 0;   // who is typing now
+    private string typedText = "";
+
 
     void Start()
     {
+
+        if (environment == null)
+            environment = FindObjectOfType<VirtualEnvironment>();
+
+        if (environment != null)
+        {
+            Vector3 dim = environment.dimensions;
+            tileSize = Mathf.Min(dim.x, dim.z) / gridSize;
+            transform.position = environment.transform.position;
+            Debug.Log("CAVE floor: " + dim.x + " m x " + dim.z + " m, tile = " + tileSize + " m");
+        }
         tileRenderers = new Renderer[gridSize, gridSize];
         originalColors = new Color[gridSize, gridSize];
 
@@ -117,7 +137,7 @@ public class GridGenerator : MonoBehaviour
         CreatePlayer(0, Color.red);
         CreatePlayer(1, Color.blue);
 
-        StartCoroutine(HideColorsAfterDelay());
+        BeginChoosing();
     }
 
     void CreatePlayer(int player, Color color)
@@ -150,6 +170,78 @@ public class GridGenerator : MonoBehaviour
         playerMarkers[player].transform.localPosition =
             new Vector3(x, 0.23f, z);
     }
+    void BeginChoosing()
+    {
+        choosingColors = true;
+        choosingPlayer = 0;
+        typedText = "";
+
+        for (int row = 0; row < gridSize; row++)
+            for (int col = 0; col < gridSize; col++)
+                tileRenderers[row, col].material.color = Color.gray;
+    }
+
+    void ShowAllColors()
+    {
+        for (int row = 0; row < gridSize; row++)
+            for (int col = 0; col < gridSize; col++)
+                tileRenderers[row, col].material.color =
+                    originalColors[row, col];
+    }
+
+    void ReadTypedColor()
+    {
+        foreach (char c in Input.inputString)
+        {
+            if (c == '\b')
+            {
+                if (typedText.Length > 0)
+                    typedText = typedText.Substring(0, typedText.Length - 1);
+            }
+            else if (c == '\n' || c == '\r')
+            {
+                SubmitColorName(typedText);
+                typedText = "";
+            }
+            else
+            {
+                typedText += c;
+            }
+        }
+    }
+
+    // The keyboard calls this now. Later the voice recognition calls it too.
+    public void SubmitColorName(string name)
+    {
+        if (!choosingColors)
+            return;
+
+        int index = System.Array.FindIndex(
+            colorNames,
+            n => n.Equals(name.Trim(),
+                System.StringComparison.OrdinalIgnoreCase)
+        );
+
+        if (index < 0)
+        {
+            Debug.Log("Unknown colour: " + name);
+            return;
+        }
+
+        // The typing player chooses for the OTHER player.
+        targetColorIndex[1 - choosingPlayer] = index;
+
+        if (choosingPlayer == 0)
+        {
+            choosingPlayer = 1;
+        }
+        else
+        {
+            choosingColors = false;
+            ShowAllColors();
+            StartCoroutine(HideColorsAfterDelay());
+        }
+    }
 
     IEnumerator HideColorsAfterDelay()
     {
@@ -175,6 +267,11 @@ public class GridGenerator : MonoBehaviour
         if (roundFinished && Input.GetKeyDown(KeyCode.R))
         {
             RestartRound();
+            return;
+        }
+        if (choosingColors)
+        {
+            ReadTypedColor();
             return;
         }
 
@@ -261,10 +358,8 @@ public class GridGenerator : MonoBehaviour
             return;
         }
 
-        // Player 1 = red, Player 2 = blue.
-        Color targetColor = player == 0
-            ? Color.red
-            : Color.blue;
+        // Each player looks for the colour the other player chose.
+        Color targetColor = colors[targetColorIndex[player]];
 
         bool correct = originalColors[row, col] == targetColor;
 
@@ -358,7 +453,7 @@ public class GridGenerator : MonoBehaviour
             }
         }
 
-        StartCoroutine(HideColorsAfterDelay());
+        BeginChoosing();
 
         Debug.Log("New round started!");
     }
@@ -400,7 +495,7 @@ public class GridGenerator : MonoBehaviour
 
                 result.playerNumber = player + 1;
                 result.targetColor =
-                    player == 0 ? "Red" : "Blue";
+                    colorNames[targetColorIndex[player]];
 
                 result.score = scores[player];
 
@@ -503,7 +598,10 @@ public class GridGenerator : MonoBehaviour
 
         string phase;
 
-        if (roundFinished)
+        if (choosingColors)
+            phase = "P" + (choosingPlayer + 1) + ": TYPE A COLOUR FOR P" +
+                    (2 - choosingPlayer);
+        else if (roundFinished)
             phase = "GAME OVER";
         else if (canSelect)
             phase = "PLAY - SELECT YOUR TILES";
@@ -516,13 +614,13 @@ public class GridGenerator : MonoBehaviour
 
         GUI.Label(
             new Rect(25, panelY + 35, 275, 25),
-            "Player 1 - RED | Attempts: " +
+            "Player 1 - " + colorNames[targetColorIndex[0]] + " | Attempts: " +
             selections[0].Count + "/4"
         );
 
         GUI.Label(
             new Rect(25, panelY + 65, 275, 25),
-            "Player 2 - BLUE | Attempts: " +
+            "Player 2 - " + colorNames[targetColorIndex[1]] + " | Attempts: " +
             selections[1].Count + "/4"
         );
 
@@ -530,8 +628,15 @@ public class GridGenerator : MonoBehaviour
         {
             GUI.Label(
                 new Rect(25, panelY + 105, 275, 30),
-                "FINAL SCORE: RED " + scores[0] +
-                "/4 | BLUE " + scores[1] + "/4"
+                "FINAL SCORE: P1 " + scores[0] +
+                "/4 | P2 " + scores[1] + "/4"
+            );
+        }
+        if (choosingColors)
+        {
+            GUI.Label(
+                new Rect(25, panelY + 105, 275, 30),
+                "Red / Blue / Green / Yellow:  " + typedText
             );
         }
     }

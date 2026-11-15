@@ -1,13 +1,21 @@
-
 using UnityEngine;
+using UnityEngine.Serialization;
 
+// Mouse test: left click = Player 1 selects a tile, right click = Player 2.
 public class CaveClickSimulator : MonoBehaviour
 {
-    public GridGenerator gridGenerator;
+    [FormerlySerializedAs("gridGenerator")]
+    public GameManager game;
+
+    void Start()
+    {
+        if (game == null)
+            game = FindObjectOfType<GameManager>();
+    }
 
     void Update()
     {
-        if (gridGenerator == null || Camera.main == null)
+        if (game == null || Camera.main == null)
             return;
 
         int player = -1;
@@ -27,10 +35,7 @@ public class CaveClickSimulator : MonoBehaviour
 
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
-            gridGenerator.TrySelectAtWorldPosition(
-                player,
-                hit.point
-            );
+            game.TrySelectAtWorldPosition(player, hit.point);
         }
     }
 }

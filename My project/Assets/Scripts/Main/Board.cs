@@ -163,16 +163,16 @@ public class Board : MonoBehaviour
                Mathf.Abs(local.z - center.z) <= half;
     }
 
-    // Creates the small sphere that shows where a player stands.
+    // Creates the flat disc that shows where a player stands.
     public Transform CreateMarker(string markerName, Color color)
     {
         GameObject marker = GameObject.CreatePrimitive(
-            PrimitiveType.Sphere
+            PrimitiveType.Cylinder
         );
 
         marker.name = markerName;
         marker.transform.SetParent(transform, false);
-        marker.transform.localScale = Vector3.one * 0.3f;
+        marker.transform.localScale = new Vector3(0.3f, 0.01f, 0.3f);
         marker.GetComponent<Renderer>().material.color = color;
 
         // The marker must not block mouse clicks on the tiles.
@@ -183,7 +183,7 @@ public class Board : MonoBehaviour
 
     public void PlaceMarker(Transform marker, Vector2Int cell)
     {
-        marker.localPosition = CellToLocal(cell, 0.23f);
+        marker.localPosition = CellToLocal(cell, 0.04f);
     }
 
     // The board colours as text like "#FF0000", for the saved result.

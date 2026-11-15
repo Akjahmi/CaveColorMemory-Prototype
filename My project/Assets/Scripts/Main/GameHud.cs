@@ -19,7 +19,8 @@ public class GameHud : MonoBehaviour
 
     void OnGUI()
     {
-        if (game == null)
+        // In the real CAVE (several screens) the wall shows the text instead.
+        if (game == null || Display.displays.Length > 1)
             return;
 
         float panelY = Mathf.Max(10, Screen.height - 150);
@@ -28,20 +29,9 @@ public class GameHud : MonoBehaviour
 
         for (int player = 0; player < GameManager.PlayerCount; player++)
         {
-            // The target colour is only known after it was chosen.
-            bool targetKnown =
-                game.State != GameState.ChoosingColors ||
-                (player == 1 && game.ChoosingPlayer == 1);
-
-            string target = targetKnown
-                ? game.GetTargetColorName(player)
-                : "?";
-
             GUI.Label(
                 new Rect(25, panelY + 35 + player * 30, 275, 25),
-                "Player " + (player + 1) + " - " + target +
-                " | Attempts: " + game.GetAttempts(player) +
-                "/" + GameManager.AttemptsPerPlayer
+                GetPlayerLine(player)
             );
         }
 
@@ -68,7 +58,7 @@ public class GameHud : MonoBehaviour
         }
     }
 
-    string GetPhaseText()
+    public string GetPhaseText()
     {
         switch (game.State)
         {
@@ -86,5 +76,21 @@ public class GameHud : MonoBehaviour
             default:
                 return "GAME OVER";
         }
+    }
+    // One line of text for a player, e.g. "Player 1 - Blue | Attempts: 2/4".
+    public string GetPlayerLine(int player)
+    {
+        // The target colour is only known after it was chosen.
+        bool targetKnown =
+            game.State != GameState.ChoosingColors ||
+            (player == 1 && game.ChoosingPlayer == 1);
+
+        string target = targetKnown
+            ? game.GetTargetColorName(player)
+            : "?";
+
+        return "Player " + (player + 1) + " - " + target +
+               " | Attempts: " + game.GetAttempts(player) +
+               "/" + GameManager.AttemptsPerPlayer;
     }
 }

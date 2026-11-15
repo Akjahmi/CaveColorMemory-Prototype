@@ -310,6 +310,7 @@ GameObject:
   - component: {fileID: 1013071104}
   - component: {fileID: 1013071103}
   - component: {fileID: 1013071105}
+  - component: {fileID: 1013071106}
   m_Layer: 0
   m_Name: GameController
   m_TagString: Untagged
@@ -329,11 +330,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f57ae5fe85d8c784eb58cac656e52154, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridSize: 4
-  tileSize: 1
-  gap: 0.08
   previewDuration: 6
-  environment: {fileID: 0}
 --- !u!4 &1013071104
 Transform:
   m_ObjectHideFlags: 0
@@ -361,7 +358,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 382fbd8b25089a84da5f6c8defa779e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridGenerator: {fileID: 1013071103}
+  game: {fileID: 1013071103}
+--- !u!114 &1013071106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1013071102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f1b7ddb40a30c54cab59465d1eb481f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  height: 1.6
+  pcCamera: {fileID: 963194227}
 --- !u!1001 &1333886774
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -448,6 +459,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c29cdc0acc9c08546b7a186a3200256b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  game: {fileID: 0}
   tracker: {fileID: 0}
 --- !u!4 &1337516536
 Transform:

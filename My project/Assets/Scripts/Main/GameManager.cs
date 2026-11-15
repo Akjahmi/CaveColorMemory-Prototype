@@ -71,6 +71,9 @@ public class GameManager : MonoBehaviour
 
     public int GetAttempts(int player) => selections[player].Count;
 
+    // The tile (row, column) a player is standing on.
+    public Vector2Int GetPlayerCell(int player) => playerCells[player];
+
     public string GetTargetColorName(int player) =>
         ColorPalette.Names[targetColorIndex[player]];
 

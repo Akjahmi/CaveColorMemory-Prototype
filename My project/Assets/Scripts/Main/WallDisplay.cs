@@ -13,6 +13,7 @@ public class WallDisplay : MonoBehaviour
     private GameManager game;
     private GameHud hud;
     private KeyboardInput keyboard;
+    private VoiceInput voice;
 
     private Font font;
     private TextMesh title;
@@ -24,6 +25,7 @@ public class WallDisplay : MonoBehaviour
         game = FindObjectOfType<GameManager>();
         hud = FindObjectOfType<GameHud>();
         keyboard = FindObjectOfType<KeyboardInput>();
+        voice = FindObjectOfType<VoiceInput>();
 
         VirtualEnvironment environment =
             FindObjectOfType<VirtualEnvironment>();
@@ -64,9 +66,15 @@ public class WallDisplay : MonoBehaviour
 
         if (game.State == GameState.ChoosingColors)
         {
+            string typed = keyboard != null ? keyboard.TypedText : "";
+
             hint.text =
-                string.Join(" / ", ColorPalette.Names) +
-                ":  " + keyboard.TypedText;
+                string.Join(" / ", ColorPalette.Names) + ":  " + typed;
+
+            // Show what the microphone understood, so players know
+            // whether to repeat the word.
+            if (voice != null && voice.LastHeard != "")
+                hint.text += "\nHeard: " + voice.LastHeard;
         }
         else if (game.State == GameState.GameOver)
         {
@@ -74,7 +82,8 @@ public class WallDisplay : MonoBehaviour
                 "P1: " + game.GetScore(0) + "/" +
                 GameManager.AttemptsPerPlayer +
                 "     P2: " + game.GetScore(1) + "/" +
-                GameManager.AttemptsPerPlayer;
+                GameManager.AttemptsPerPlayer +
+                "\nRaise one hand above your head for a new round";
         }
         else
         {

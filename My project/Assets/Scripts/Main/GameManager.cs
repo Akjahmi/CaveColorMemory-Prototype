@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // The rules of the game: phases, colour choice, attempts and score.
-// The floor is in Board, the keyboard in KeyboardInput, the text in GameHud,
-// the Kinect in PlayerTracker.
+// The floor is in Board, the keyboard in KeyboardInput, the microphone in
+// VoiceInput, the text in GameHud and WallDisplay, the Kinect in PlayerTracker.
 public class GameManager : MonoBehaviour
 {
     public const int PlayerCount = 2;
@@ -42,6 +42,7 @@ public class GameManager : MonoBehaviour
         // Add the helper scripts if they are not in the scene yet.
         Board = GetOrAdd<Board>();
         GetOrAdd<KeyboardInput>();
+        GetOrAdd<VoiceInput>();
         GetOrAdd<GameHud>();
 
         if (FindObjectOfType<PlayerTracker>() == null)

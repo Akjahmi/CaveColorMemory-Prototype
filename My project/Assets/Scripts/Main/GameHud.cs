@@ -1,7 +1,7 @@
 using UnityEngine;
 
-// Shows the phase, the attempts and the score on the screen.
-// (Later this moves to the front wall of the CAVE.)
+// Shows the phase, the attempts and the score on the PC screen.
+// In the real CAVE, WallDisplay shows the same text on the front wall.
 public class GameHud : MonoBehaviour
 {
     private GameManager game;
@@ -64,7 +64,7 @@ public class GameHud : MonoBehaviour
         {
             case GameState.ChoosingColors:
                 return "P" + (game.ChoosingPlayer + 1) +
-                       ": TYPE A COLOUR FOR P" +
+                       ": SAY OR TYPE A COLOUR FOR P" +
                        (2 - game.ChoosingPlayer);
 
             case GameState.Memorize:

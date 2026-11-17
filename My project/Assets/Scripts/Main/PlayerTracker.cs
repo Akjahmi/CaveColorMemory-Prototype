@@ -4,7 +4,7 @@ using JointType = Windows.Kinect.JointType;
 using TrackingState = Windows.Kinect.TrackingState;
 
 // Tells the game where each player stands in the CAVE,
-// using the hip (SpineBase) of up to two persons tracked by the Kinect.
+// using the hip (or, if chosen, the feet) of up to two persons tracked by the Kinect.
 // A player selects a tile by standing on it for a moment.
 // After game over, raising one hand above the head starts a new round.
 // Without a Kinect this script does nothing; the keyboard is in KeyboardInput.
@@ -14,6 +14,19 @@ public class PlayerTracker : MonoBehaviour
 
     // Leave empty: the tracker of the CAVE is found automatically.
     public KinectTracker tracker;
+
+    // Which body point decides the tile a player stands on.
+    public enum PositionSource
+    {
+        // Hip (SpineBase) projected onto the floor. The most stable.
+        Hip,
+
+        // Middle between both ankles. Closer to where the feet are,
+        // but jumpier, and feet are often hidden by the other player.
+        Feet
+    }
+
+    public PositionSource positionSource = PositionSource.Hip;
 
     // Kinect tracking ID of each player. 0 = free slot.
     private ulong[] playerIds = new ulong[GameManager.PlayerCount];
@@ -62,12 +75,10 @@ public class PlayerTracker : MonoBehaviour
             if (actor == null)
                 continue;
 
-            var hip = actor.GetJoint(JointType.SpineBase);
-
-            if (hip.trackingState == TrackingState.NotTracked)
+            if (!TryGetFloorPosition(actor, out Vector3 floorPosition))
                 continue;
 
-            game.SetPlayerPosition(player, hip.position);
+            game.SetPlayerPosition(player, floorPosition);
             UpdateDwell(player);
         }
 
@@ -134,6 +145,35 @@ public class PlayerTracker : MonoBehaviour
     {
         return joint.trackingState == TrackingState.Tracked &&
                joint.position.y > height;
+    }
+
+    // The point on the floor where the player stands. False = not visible.
+    bool TryGetFloorPosition(KinectActor actor, out Vector3 position)
+    {
+        KinectJoint hip = actor.GetJoint(JointType.SpineBase);
+        position = hip.position;
+
+        if (positionSource == PositionSource.Feet)
+        {
+            KinectJoint left = actor.GetJoint(JointType.AnkleLeft);
+            KinectJoint right = actor.GetJoint(JointType.AnkleRight);
+
+            bool hasLeft = left.trackingState != TrackingState.NotTracked;
+            bool hasRight = right.trackingState != TrackingState.NotTracked;
+
+            if (hasLeft && hasRight)
+            {
+                position = (left.position + right.position) * 0.5f;
+                return true;
+            }
+
+            if (hasLeft) { position = left.position; return true; }
+            if (hasRight) { position = right.position; return true; }
+
+            // No foot visible: fall back to the hip.
+        }
+
+        return hip.trackingState != TrackingState.NotTracked;
     }
 
     // Selects the tile when the player has stood on it long enough.

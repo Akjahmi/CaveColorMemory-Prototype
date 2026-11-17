@@ -18,6 +18,16 @@ public class Board : MonoBehaviour
     // Leave empty: the CAVE is found automatically.
     public VirtualEnvironment environment;
 
+    [Header("Fit to the CAVE floor")]
+    // Share of the CAVE floor the grid covers. 1 = the whole floor,
+    // 0.8 = a bit smaller, leaving a free border along the walls.
+    [Range(0.3f, 1f)]
+    public float floorCoverage = 1f;
+
+    // Moves the grid on the floor in metres:
+    // x = to the right, y = towards the front wall.
+    public Vector2 floorOffset = Vector2.zero;
+
     private Renderer[,] tileRenderers;
     private int[,] colorIndices;
 
@@ -29,13 +39,21 @@ public class Board : MonoBehaviour
         if (environment == null)
             environment = FindObjectOfType<VirtualEnvironment>();
 
-        // Inside a CAVE the grid fills the real floor.
+        // Inside a CAVE the grid fits the real floor.
+        // (Without a CAVE, tileSize from the Inspector is used.)
         if (environment != null)
         {
             Vector3 dimensions = environment.dimensions;
 
-            tileSize = Mathf.Min(dimensions.x, dimensions.z) / gridSize;
-            transform.position = environment.transform.position;
+            tileSize = Mathf.Min(dimensions.x, dimensions.z) *
+                       floorCoverage / gridSize;
+
+            transform.SetPositionAndRotation(
+                environment.transform.TransformPoint(
+                    new Vector3(floorOffset.x, 0f, floorOffset.y)
+                ),
+                environment.transform.rotation
+            );
 
             Debug.Log(
                 "CAVE floor: " + dimensions.x + " m x " + dimensions.z +

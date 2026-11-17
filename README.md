@@ -19,7 +19,7 @@ Each player gets one point for every tile of their colour. There are 4 tiles of 
 
 | Action | In the CAVE | On the PC |
 |---|---|---|
-| Choose a colour | Say "Red", "Blue", "Green" or "Yellow" | Type the colour name, then Enter |
+| Choose a colour | Say "Red", "Blue", "Green" or "Yellow" (or "Rot", "Blau", "Grün", "Gelb") | Type the colour name (English or German), then Enter |
 | Move | Walk on the floor | Player 1: W A S D · Player 2: arrow keys |
 | Select a tile | Stand on it for 1.2 seconds | Player 1: Space · Player 2: Enter |
 | New round | Raise one hand above your head for 1 second | R |
@@ -77,13 +77,22 @@ All of these can be changed in the Inspector without editing code.
 
 | Value | Where | Default | What it does |
 |---|---|---|---|
-| Dwell Time | Player Tracker | 1.2 s | How long a player stands on a tile to select it |
+| Floor Coverage | Board | 1 | Share of the CAVE floor the grid covers (0.8 = smaller, with a free border) |
+| Floor Offset | Board | 0, 0 | Moves the grid in metres (x = right, y = towards the front wall) |
 | Hysteresis | Board | 0.08 m | How far past a tile border before the tile changes |
+| Position Source | Player Tracker | Hip | Hip (stable) or Feet (middle between the ankles) |
+| Dwell Time | Player Tracker | 1.2 s | How long a player stands on a tile to select it |
 | Hand Above Head | Player Tracker | 0.1 m | How high a hand must be for the new-round gesture |
 | Raise Hold Time | Player Tracker | 1 s | How long the hand must stay up |
 | Restart Delay | Player Tracker | 2 s | Pause after game over before the gesture counts |
 | Preview Duration | Game Manager | 6 s | How long the colours are visible |
-| Height | Wall Display | 1.6 m | Height of the text on the front wall |
+| Wall | Wall Display | Front | Which wall shows the text: Front, Back, Left or Right |
+| Height | Wall Display | 1.6 m | Height of the text on the wall |
+| Text Scale | Wall Display | 1 | Size of the text on the wall |
+
+The grid size comes from the CAVE object's **Dimensions** (default 3 × 2.45 × 3 m). If the walls and the floor do not match the real room, the CAVE itself is set up wrong; fix its Dimensions first, then the grid follows.
+
+`Board` must be added to the `GameController` object in the scene for its values to be saved; otherwise it is added only while the game runs.
 
 ## Known limits
 

@@ -46,11 +46,11 @@ public class VoiceInput : MonoBehaviour
                 return;
             }
 
-            // Only the four colour names are listened for.
+            // Only the colour names (English and German) are listened for.
             // Medium = fewer false words. Use ConfidenceLevel.Low if
             // the CAVE is noisy and correct words are missed.
             recognizer = new KeywordRecognizer(
-                ColorPalette.Names,
+                ColorPalette.AllNames,
                 ConfidenceLevel.Medium
             );
 
@@ -61,7 +61,7 @@ public class VoiceInput : MonoBehaviour
 
             Debug.Log(
                 "Voice input running: " +
-                string.Join(", ", ColorPalette.Names)
+                string.Join(", ", ColorPalette.AllNames)
             );
         }
         catch (System.Exception ex)
